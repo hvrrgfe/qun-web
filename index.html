@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>群档案 · 高中.高校の青春！</title>
+<meta name="theme-color" content="#0b0b0f">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="badge">GROUP PROFILE</div>
+    <h1 id="groupName">高中.高校の青春！</h1>
+    <p class="sub" id="groupSub">加载中…</p>
+
+    <div style="display:flex;gap:10px;margin:0 0 26px;flex-wrap:wrap">
+      <a href="me.html" style="display:inline-block;padding:9px 16px;border-radius:10px;
+        background:linear-gradient(135deg,#5b8cff,#8b5bff);color:#fff;text-decoration:none;
+        font-size:14px;font-weight:600">👤 我的档案 / 注册</a>
+      <a href="admin.html" style="display:inline-block;padding:9px 16px;border-radius:10px;
+        background:rgba(255,255,255,.05);border:1px solid #26262f;color:#9a9aa8;
+        text-decoration:none;font-size:14px">🔒 群主视图</a>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-n" id="sMembers">–</div><div class="stat-l">成员</div></div>
+      <div class="stat"><div class="stat-n" id="sMessages">–</div><div class="stat-l">总发言</div></div>
+      <div class="stat"><div class="stat-n" id="sImages">–</div><div class="stat-l">图片</div></div>
+      <div class="stat"><div class="stat-n" id="sActive">–</div><div class="stat-l">近7天活跃</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="panel" id="podiumPanel">
+    <h2>🏆 活跃榜</h2>
+    <div class="podium" id="podium"></div>
+    <ol class="board" id="board"></ol>
+  </section>
+
+  <section class="panel">
+    <h2>🕐 群活跃时段</h2>
+    <p class="hint">所有成员发言按小时汇总（北京时间）</p>
+    <div class="hours" id="hours"></div>
+    <div class="hours-axis"><span>0点</span><span>6点</span><span>12点</span><span>18点</span><span>23点</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>👥 成员卡片</h2>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="搜索昵称或 QQ 号…" autocomplete="off">
+      <select id="sort">
+        <option value="activity_score">按活跃积分</option>
+        <option value="msg_count">按发言数</option>
+        <option value="reply_received">按被回复数</option>
+        <option value="last_seen">按最近活跃</option>
+      </select>
+    </div>
+    <div class="cards" id="cards"></div>
+    <p class="empty" id="empty" hidden>没有匹配的成员</p>
+  </section>
+
+  <footer class="foot">
+    <p>
+      数据来自群内公开消息的统计，仅供本群内部查看。<br>
+      活跃积分 = 发言数 + 2×被回复数 + 2×被@次数。标注「推断」的字段由模型根据发言推测，仅供参考。
+    </p>
+    <p class="privacy">
+      🔒 性格标签、薄弱知识点、AI 摘要等敏感推断<strong>不会</strong>出现在本页面，仅群主可见。<br>
+      想删除自己的全部数据：在群里发送 <code>/退出统计</code>
+    </p>
+  </footer>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

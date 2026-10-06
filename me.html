@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的群档案</title>
+<meta name="theme-color" content="#0b0b0f">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:32px 20px 60px}
+  .tabs{display:flex;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:12px;padding:5px;margin-bottom:18px}
+  .tabs button{flex:1;padding:9px;border:0;border-radius:9px;background:none;color:var(--dim);
+    font-size:14px;font-family:inherit;cursor:pointer;font-weight:550}
+  .tabs button.on{background:var(--panel);color:var(--fg);box-shadow:0 1px 6px rgba(0,0,0,.35)}
+  label{display:block;font-size:12.5px;color:var(--dim);margin:0 0 5px 2px}
+  input{width:100%;margin-bottom:13px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--fg);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit}
+  input:focus{outline:none;border-color:var(--acc)}
+  .primary{width:100%;padding:12px;border-radius:10px;border:0;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:15px;font-weight:600}
+  .primary:disabled{opacity:.5;cursor:default}
+  .msg{font-size:13.5px;margin-top:12px;min-height:20px;line-height:1.6}
+  .msg.err{color:#ff8080}.msg.ok{color:#8fd6a6}
+  .code{font-size:30px;letter-spacing:.28em;font-weight:700;text-align:center;
+    padding:16px;border-radius:12px;background:rgba(91,140,255,.1);
+    border:1px solid rgba(91,140,255,.3);color:#a9c2ff;font-variant-numeric:tabular-nums;margin:8px 0}
+  .kvs{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:14px;margin:14px 0}
+  .kvs div{display:flex;justify-content:space-between;gap:8px}
+  .kvs .k{color:var(--dim)}
+  .kvs .v{font-variant-numeric:tabular-nums;font-weight:600}
+  h2{font-size:17px;margin:0 0 12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+  .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+  .link{background:none;border:1px solid var(--line);color:var(--dim);border-radius:9px;
+    padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit}
+  .hintbox{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;font-size:13px;color:var(--dim);line-height:1.7}
+  code{background:rgba(255,255,255,.09);padding:2px 7px;border-radius:5px;font-size:13px;color:var(--fg)}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:36px;margin-top:6px}
+  .spark i{flex:1;background:linear-gradient(180deg,var(--acc),var(--acc2));border-radius:2px;min-height:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 style="font-size:24px;margin:0 0 4px">我的群档案</h1>
+  <p class="sub" style="margin:0 0 22px">用 QQ 号注册登录，查看自己的统计与画像</p>
+
+  <!-- 未登录 -->
+  <div id="authBox">
+    <div class="tabs">
+      <button id="tabLogin" class="on">登录</button>
+      <button id="tabReg">注册</button>
+    </div>
+
+    <div class="card">
+      <label>QQ 号</label>
+      <input id="qq" type="tel" inputmode="numeric" placeholder="你的 QQ 号" autocomplete="username">
+      <label>密码</label>
+      <input id="pw" type="password" placeholder="至少 6 位" autocomplete="current-password">
+      <button class="primary" id="go">登录</button>
+      <div class="msg" id="m1"></div>
+    </div>
+
+    <div class="hintbox">
+      密码是你自己设的，和 QQ 密码无关，我们也不知道你 QQ 的密码。<br>
+      注册后需要在群里发一条 <code>/验证 123456</code>，用来确认这个 QQ 号确实是你本人的。
+    </div>
+  </div>
+
+  <!-- 待验证 -->
+  <div id="verifyBox" hidden>
+    <div class="card">
+      <h2>还差一步</h2>
+      <p class="sub" style="margin:0 0 10px">在群里用 <b>你注册的那个 QQ 号</b> 发送：</p>
+      <div class="code" id="code">------</div>
+      <p class="msg ok" style="text-align:center;margin:0 0 14px">/验证 <span id="code2"></span></p>
+      <div class="hintbox">
+        验证码 30 分钟内有效，用一次就作废。<br>
+        发完回来点下面的按钮。
+      </div>
+      <button class="primary" id="recheck" style="margin-top:14px">我发过了，检查一下</button>
+      <div class="msg" id="m2"></div>
+    </div>
+  </div>
+
+  <!-- 已验证：自己的画像 -->
+  <div id="profBox" hidden>
+    <div class="card">
+      <div class="row2">
+        <h2 style="margin:0" id="pname">我的画像</h2>
+        <button class="link" id="logout">退出</button>
+      </div>
+      <div class="kvs" id="kvs"></div>
+      <div style="color:var(--dim);font-size:12.5px;margin-top:6px">活跃时段（0–23 点）</div>
+      <div class="spark" id="spark"></div>
+    </div>
+
+    <div class="card" id="inferCard">
+      <h2>数据推断</h2>
+      <div id="infer"></div>
+      <p class="sub" style="font-size:12px;margin:14px 0 0">
+        以下内容由模型根据你的群内发言推测，<b>可能不准</b>，仅供参考。<br>
+        只有你自己和群主能看到。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>不想要这些数据？</h2>
+      <p class="sub" style="margin:0">在群里发送 <code>/退出统计</code>，你的全部消息和画像会被<b>物理删除</b>，之后也不再采集。</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPA_URL = 'https://zusduayweapefdwxbygh.supabase.co';
+const SUPA_KEY = 'sb_publishable_6W7sS-QvPQqbDYVpXJHJWw_w_Mz3pzt';
+const MAIL_DOMAIN = 'qunbot.example.com';   // 合成的邮箱域名，用户看不到
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = n => Number(n || 0).toLocaleString('zh-CN');
+let TOKEN = null, mode = 'login';
+
+const emailOf = qq => `${qq}@${MAIL_DOMAIN}`;
+const say = (el, t, cls = '') => { const e = $(el); e.className = 'msg ' + cls; e.innerHTML = t; };
+
+function setMode(m) {
+  mode = m;
+  $('tabLogin').classList.toggle('on', m === 'login');
+  $('tabReg').classList.toggle('on', m === 'reg');
+  $('go').textContent = m === 'login' ? '登录' : '注册';
+  $('pw').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  say('m1', '');
+}
+
+async function auth(path, body, token) {
+  const r = await fetch(`${SUPA_URL}/auth/v1/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPA_KEY,
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.msg || j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args || {}),
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  return r.json();
+}
+
+async function select(path) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + TOKEN },
+  });
+  if (r.status === 401 || r.status === 403) throw new Error('登录已过期，请重新登录');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ---------- 注册 ---------- */
+async function doRegister(qq, pw) {
+  if (!/^[0-9]{5,12}$/.test(qq)) throw new Error('QQ 号格式不对');
+  if (pw.length < 6) throw new Error('密码至少 6 位');
+
+  const j = await auth('signup', { email: emailOf(qq), password: pw });
+  if (!j.access_token) {
+    throw new Error('注册成功但需要邮箱确认。请让群主在 Supabase 里关掉「Confirm email」。');
+  }
+  TOKEN = j.access_token;
+  sessionStorage.setItem('qun_token', TOKEN);
+
+  const code = await rpc('issue_verify_code', { p_qq: qq });
+  showVerify(code);
+}
+
+/* ---------- 登录 ---------- */
+async function doLogin(qq, pw) {
+  if (!/^[0-9]{5,12}$/.test(qq)) throw new Error('QQ 号格式不对');
+  const j = await auth('token?grant_type=password', { email: emailOf(qq), password: pw });
+  TOKEN = j.access_token;
+  sessionStorage.setItem('qun_token', TOKEN);
+  await route();
+}
+
+/* ---------- 路由：待验证 or 看画像 ---------- */
+async function route() {
+  const me = await select('v_me?select=*');
+  const row = me && me[0];
+  if (!row || !row.verified) {
+    if (row && row.verify_code) return showVerify(row.verify_code);
+    // 没验证码就重新签发一个
+    const code = await rpc('issue_verify_code', { p_qq: row ? row.qq : null });
+    return showVerify(code);
+  }
+  await showProfile();
+}
+
+function showVerify(code) {
+  $('authBox').hidden = true;
+  $('profBox').hidden = true;
+  $('verifyBox').hidden = false;
+  $('code').textContent = code;
+  $('code2').textContent = code;
+  sessionStorage.setItem('qun_code', code);
+}
+
+async function showProfile() {
+  const rows = await select('v_my_profile?select=*');
+  const p = rows && rows[0];
+  if (!p) {
+    $('verifyBox').hidden = false;
+    return say('m2', '还没有你的统计数据 —— 先在群里说几句话再来。', '');
+  }
+  $('authBox').hidden = true;
+  $('verifyBox').hidden = true;
+  $('profBox').hidden = false;
+  $('pname').textContent = (p.nickname || '我') + ' 的画像';
+
+  $('kvs').innerHTML = [
+    ['发言', nf(p.msg_count) + ' 条'],
+    ['图片', nf(p.image_count) + ' 张'],
+    ['被回复', nf(p.reply_received) + ' 次'],
+    ['被 @', nf(p.at_received) + ' 次'],
+    ['活跃积分', nf(p.activity_score)],
+    ['最近活跃', p.last_seen ? new Date(p.last_seen).toLocaleDateString('zh-CN') : '—'],
+  ].map(([k, v]) => `<div><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('');
+
+  const h = p.active_hours || {};
+  const bars = Array.from({ length: 24 }, (_, i) => Number(h[String(i)]) || 0);
+  const mx = Math.max(1, ...bars);
+  $('spark').innerHTML = bars.map(v =>
+    `<i style="height:${Math.max(6, Math.round(v / mx * 100))}%" title="${v} 条"></i>`).join('');
+
+  const chips = (arr, cls) => (arr || []).length
+    ? (arr || []).map(x => `<span class="tag ${cls || ''}">${esc(x)}</span>`).join(' ')
+    : '<span style="color:var(--dim2)">暂无</span>';
+
+  const hasAny = (p.grade && p.grade !== '未知') || (p.strengths || []).length
+    || (p.persona_tags || []).length || (p.weak_topics || []).length || p.llm_summary;
+  $('inferCard').hidden = !hasAny;
+  $('infer').innerHTML = `
+    <div style="margin-bottom:12px"><div class="k" style="color:var(--dim);font-size:12.5px;margin-bottom:6px">推断年级</div>
+      <span class="tag infer">${esc(p.grade && p.grade !== '未知' ? p.grade : '暂无')}</span></div>
+    <div style="margin-bottom:12px"><div class="k" style="color:var(--dim);font-size:12.5px;margin-bottom:6px">数据推断的擅长方向</div>${chips(p.strengths, 'infer')}</div>
+    <div style="margin-bottom:12px"><div class="k" style="color:var(--dim);font-size:12.5px;margin-bottom:6px">性格 / 角色标签</div>${chips(p.persona_tags, 'infer')}</div>
+    <div style="margin-bottom:12px"><div class="k" style="color:var(--dim);font-size:12.5px;margin-bottom:6px">可能吃力的方向</div>${chips(p.weak_topics, 'warn')}</div>
+    ${p.llm_summary ? `<div><div class="k" style="color:var(--dim);font-size:12.5px;margin-bottom:6px">一句话概括</div><div style="font-size:14px">${esc(p.llm_summary)}</div></div>` : ''}`;
+}
+
+/* ---------- 事件 ---------- */
+$('tabLogin').onclick = () => setMode('login');
+$('tabReg').onclick = () => setMode('reg');
+
+$('go').onclick = async () => {
+  const b = $('go'); b.disabled = true;
+  say('m1', mode === 'login' ? '登录中…' : '注册中…');
+  try {
+    const qq = $('qq').value.trim(), pw = $('pw').value;
+    if (mode === 'login') await doLogin(qq, pw);
+    else await doRegister(qq, pw);
+    say('m1', '');
+  } catch (e) {
+    let t = e.message;
+    if (/already registered|User already registered/i.test(t)) t = '这个 QQ 号已经注册过了，直接登录就行。';
+    if (/Invalid login credentials/i.test(t)) t = 'QQ 号或密码不对。';
+    if (/rate limit/i.test(t)) t = '操作太频繁，等一会儿再试。';
+    say('m1', esc(t), 'err');
+  } finally { b.disabled = false; }
+};
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+
+$('recheck').onclick = async () => {
+  say('m2', '检查中…');
+  try { await route(); say('m2', ''); }
+  catch (e) { say('m2', esc(e.message), 'err'); }
+};
+
+$('logout').onclick = () => {
+  sessionStorage.removeItem('qun_token');
+  TOKEN = null;
+  $('profBox').hidden = true;
+  $('verifyBox').hidden = true;
+  $('authBox').hidden = false;
+  setMode('login');
+};
+
+(async function boot() {
+  const saved = sessionStorage.getItem('qun_token');
+  if (!saved) return;
+  TOKEN = saved;
+  try { await route(); }
+  catch { sessionStorage.removeItem('qun_token'); TOKEN = null; }
+})();
+</script>
+</body>
+</html>

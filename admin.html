@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>群主视图 · 完整画像</title>
+<meta name="theme-color" content="#0b0b0f">
+<link rel="stylesheet" href="style.css">
+<style>
+  .gate{max-width:380px;margin:14vh auto;padding:0 20px}
+  .gate .panel{padding:26px}
+  .gate h1{font-size:20px;margin:0 0 6px}
+  .gate .sub{margin:0 0 20px}
+  .gate input{width:100%;margin-bottom:10px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--fg);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit}
+  .gate input:focus{outline:none;border-color:var(--acc)}
+  .gate button{width:100%;padding:12px;border-radius:10px;border:0;cursor:pointer;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:15px;font-weight:600;font-family:inherit}
+  .gate button:disabled{opacity:.5;cursor:default}
+  .err{color:#ff8080;font-size:13px;margin-top:10px;min-height:18px}
+  .warnbar{background:rgba(255,159,64,.09);border:1px solid rgba(255,159,64,.3);color:#ffce8a;
+    border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:12px;position:sticky;top:0;background:var(--panel);z-index:2}
+  tr:hover td{background:rgba(255,255,255,.025)}
+  td.num{font-variant-numeric:tabular-nums;text-align:right}
+  .tag.warn{background:rgba(255,120,120,.13);border-color:rgba(255,120,120,.32);color:#ffb0b0}
+  .sum{color:var(--dim);font-size:12.5px;max-width:260px}
+  .tw{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .logout{background:none;border:1px solid var(--line);color:var(--dim);border-radius:9px;
+    padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<!-- 未登录 -->
+<div class="gate" id="gate">
+  <div class="panel">
+    <h1>🔒 群主视图</h1>
+    <p class="sub">这里包含性格标签、薄弱知识点等敏感推断，仅群主可见。</p>
+    <input id="email" type="email" placeholder="邮箱" autocomplete="username">
+    <input id="pw" type="password" placeholder="密码" autocomplete="current-password">
+    <button id="login">登录</button>
+    <div class="err" id="err"></div>
+    <p class="sub" style="margin-top:18px;margin-bottom:0;font-size:12.5px">
+      普通成员看的是 <a href="index.html">公开页面</a>
+    </p>
+  </div>
+</div>
+
+<!-- 已登录 -->
+<main id="app" hidden>
+  <div class="topbar">
+    <div>
+      <h1 style="font-size:22px;margin:0 0 4px">群主视图 · 完整画像</h1>
+      <div class="sub" id="meta" style="margin:0"></div>
+    </div>
+    <button class="logout" id="logout">退出登录</button>
+  </div>
+
+  <div class="warnbar">
+    ⚠️ 以下内容包含模型推断，未经证实。请仅用于「定向推荐资料」这类正向场景，
+    <strong>不要公开、不要用于评价他人</strong>。
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="搜索昵称或 QQ 号…" autocomplete="off">
+      <select id="sort">
+        <option value="activity_score">按活跃积分</option>
+        <option value="msg_count">按发言数</option>
+        <option value="llm_at">按画像时间</option>
+      </select>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>成员</th><th>发言</th><th>活跃</th>
+          <th>年级</th><th>擅长</th><th>薄弱</th><th>性格标签</th><th>AI 摘要</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p>数据来源：群内公开消息的统计 + 模型推断。<code>/退出统计</code> 可让成员删除自己的全部数据。</p>
+  </footer>
+</main>
+
+<script>
+const SUPA_URL = 'https://zusduayweapefdwxbygh.supabase.co';
+const SUPA_KEY = 'sb_publishable_6W7s-QvPQqbDYVpXJHJWw_w_Mz3pzt';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = n => Number(n || 0).toLocaleString('zh-CN');
+let TOKEN = null, ALL = [];
+
+async function login(email, pw) {
+  const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pw }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error_description || j.msg || j.error || `HTTP ${r.status}`);
+  TOKEN = j.access_token;
+  sessionStorage.setItem('qqbot_admin_token', TOKEN);
+  return TOKEN;
+}
+
+async function load() {
+  const r = await fetch(`${SUPA_URL}/rest/v1/v_private_profiles?select=*&order=activity_score.desc&limit=500`, {
+    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + TOKEN },
+  });
+  if (r.status === 401 || r.status === 403) throw new Error('登录已过期，请重新登录');
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  ALL = await r.json();
+}
+
+function render() {
+  const kw = ($('search').value || '').trim().toLowerCase();
+  const sort = $('sort').value;
+  let list = ALL.filter(m => !kw || String(m.nickname || '').toLowerCase().includes(kw) || String(m.qq).includes(kw));
+  list = list.slice().sort((a, b) => sort === 'llm_at'
+    ? new Date(b.llm_at || 0) - new Date(a.llm_at || 0)
+    : (b[sort] || 0) - (a[sort] || 0));
+
+  $('rows').innerHTML = list.map(m => {
+    const li = (arr, cls) => (arr || []).map(x => `<span class="tag ${cls || ''}">${esc(x)}</span>`).join(' ') || '<span style="color:var(--dim2)">—</span>';
+    const d = m.llm_at ? new Date(m.llm_at).toLocaleDateString('zh-CN') : '未生成';
+    return `<tr>
+      <td><strong>${esc(m.nickname || '匿名')}</strong><br><span style="color:var(--dim2);font-size:12px">${esc(String(m.qq))}${m.role === 'owner' ? ' · 群主' : m.role === 'admin' ? ' · 管理员' : ''}</span></td>
+      <td class="num">${nf(m.msg_count)}</td>
+      <td class="num">${nf(m.activity_score)}</td>
+      <td>${esc(m.grade || '未知')}</td>
+      <td>${li(m.strengths)}</td>
+      <td>${li(m.weak_topics, 'warn')}</td>
+      <td>${li(m.persona_tags)}</td>
+      <td><div class="sum">${esc(m.llm_summary || '—')}<br><span style="color:var(--dim2);font-size:11.5px">画像日期 ${d}</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function showApp() {
+  $('gate').hidden = true;
+  $('app').hidden = false;
+  $('meta').textContent = `共 ${ALL.length} 位成员的完整画像 · 仅你可见`;
+  render();
+}
+
+async function boot() {
+  const saved = sessionStorage.getItem('qqbot_admin_token');
+  if (saved) {
+    TOKEN = saved;
+    try { await load(); return showApp(); }
+    catch { sessionStorage.removeItem('qqbot_admin_token'); TOKEN = null; }
+  }
+}
+
+$('login').addEventListener('click', async () => {
+  const b = $('login'); b.disabled = true; $('err').textContent = '登录中…';
+  try {
+    await login($('email').value.trim(), $('pw').value);
+    await load();
+    showApp();
+  } catch (e) {
+    $('err').textContent = '登录失败：' + e.message;
+  } finally { b.disabled = false; }
+});
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('login').click(); });
+
+$('logout').addEventListener('click', () => {
+  sessionStorage.removeItem('qqbot_admin_token');
+  TOKEN = null; ALL = [];
+  $('app').hidden = true; $('gate').hidden = false; $('err').textContent = '';
+});
+
+$('search').addEventListener('input', render);
+$('sort').addEventListener('change', render);
+boot();
+</script>
+</body>
+</html>
